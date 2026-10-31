@@ -1,0 +1,4 @@
+self-hosted-runner:
+  # label of the optional hardware-in-the-loop runner (see README)
+  labels:
+    - xiao-i2c
