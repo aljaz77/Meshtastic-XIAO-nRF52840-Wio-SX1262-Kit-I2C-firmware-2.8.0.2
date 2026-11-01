@@ -188,6 +188,13 @@ jobs:
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror -I tests/stubs -I overlay/src tests/test_bq25798.cpp -o "$RUNNER_TEMP/test_bq25798"
           "$RUNNER_TEMP/test_bq25798" | tee "$RUNNER_TEMP/unit-test.txt"
+          # Same tests with the board's real variant.h force-included: catches board macros
+          # that clash with driver names in seconds instead of after the full firmware build.
+          V=../firmware/variants/nrf52840/seeed_xiao_nrf52840_kit
+          g++ -std=c++17 -Wall -Wextra -Werror -I tests/stubs -I overlay/src -I "$V" \
+            -DSEEED_XIAO_NRF52840_KIT -DSEEED_XIAO_NRF_KIT_I2C -DCONFIG_NFCT_PINS_AS_GPIOS=1 -include variant.h \
+            tests/test_bq25798.cpp -o "$RUNNER_TEMP/test_bq25798_variant"
+          "$RUNNER_TEMP/test_bq25798_variant" | tail -1
 
       - name: Apply overlay (BQ25798 driver) to upstream source
         run: python self/scripts/apply_overlay.py firmware

@@ -4,6 +4,9 @@
  *
  *   g++ -std=c++17 -Wall -Wextra -Werror -I tests/stubs -I overlay/src tests/test_bq25798.cpp -o test_bq25798
  *   ./test_bq25798
+ *
+ * CI also builds it with the board's real variant.h force-included (-include variant.h),
+ * so a macro in the board headers that clashes with a driver name fails here, fast.
  */
 #include <cmath>
 #include <cstring>
@@ -41,7 +44,9 @@ TwoWire Wire;
 #include "sleep.h"
 Observable<void *> notifyDeepSleep;
 
+#ifndef SEEED_XIAO_NRF_KIT_I2C
 #define SEEED_XIAO_NRF_KIT_I2C // as in the real env: driver enabled by default
+#endif
 #include "power/BQ25798BatteryLevel.h"
 
 // ---------------------------------------------------------------------------------------

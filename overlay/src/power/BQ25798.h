@@ -10,6 +10,9 @@
  *   https://github.com/adafruit/Adafruit_bq25798 and
  *   https://github.com/misch2/BQ25798_Library
  * 16-bit registers are big-endian (lower address = MSB) and auto-increment on reads.
+ *
+ * Constants use kCamelCase on purpose: board variant headers #define plenty of UPPER_CASE
+ * names (the XIAO's defines ADC_CTRL, for example), which would silently clobber them.
  */
 
 #include <stddef.h>
@@ -18,44 +21,44 @@
 namespace bq25798
 {
 
-constexpr uint8_t DEFAULT_ADDR = 0x6B; // fixed, the BQ25798 has no address pin
+constexpr uint8_t kDefaultAddr = 0x6B; // fixed, the BQ25798 has no address pin
 
 namespace reg
 {
-constexpr uint8_t MIN_SYS_VOLTAGE = 0x00;  // VSYSMIN[5:0], 250 mV/LSB + 2500 mV
-constexpr uint8_t CHARGE_VOLTAGE = 0x01;   // 16-bit, VREG[10:0], 10 mV/LSB
-constexpr uint8_t CHARGE_CURRENT = 0x03;   // 16-bit, ICHG[8:0], 10 mA/LSB
-constexpr uint8_t INPUT_VOLTAGE = 0x05;    // VINDPM[7:0], 100 mV/LSB
-constexpr uint8_t INPUT_CURRENT = 0x06;    // 16-bit, IINDPM[8:0], 10 mA/LSB
-constexpr uint8_t TERMINATION_CTRL = 0x09; // REG_RST = bit 6
-constexpr uint8_t RECHARGE_CTRL = 0x0A;    // CELL[7:6]
-constexpr uint8_t CHARGER_CTRL_0 = 0x0F;   // EN_CHG = bit 5
-constexpr uint8_t CHARGER_CTRL_1 = 0x10;   // WD_RST = bit 3, WATCHDOG[2:0]
-constexpr uint8_t CHARGER_CTRL_2 = 0x11;   // SDRV_CTRL[2:1], SDRV_DLY = bit 0
-constexpr uint8_t CHARGER_CTRL_5 = 0x14;   // EN_IBAT = bit 5
-constexpr uint8_t MPPT_CTRL = 0x15;        // EN_MPPT = bit 0
-constexpr uint8_t NTC_CTRL_1 = 0x18;       // TS_IGNORE = bit 0
-constexpr uint8_t STATUS_0 = 0x1B;         // PG_STAT = bit 3, VBUS_PRESENT_STAT = bit 0
-constexpr uint8_t STATUS_1 = 0x1C;         // CHG_STAT[7:5], VBUS_STAT[4:1]
-constexpr uint8_t STATUS_2 = 0x1D;         // VBAT_PRESENT_STAT = bit 0
-constexpr uint8_t STATUS_4 = 0x1F;         // TS_COLD/COOL/WARM/HOT = bits 3..0
-constexpr uint8_t FAULT_0 = 0x20;
-constexpr uint8_t FAULT_1 = 0x21;
-constexpr uint8_t ADC_CTRL = 0x2E;  // ADC_EN = bit 7, ADC_RATE = bit 6, ADC_SAMPLE[5:4]
-constexpr uint8_t ADC_DIS_1 = 0x30; // DPLUS_ADC_DIS = bit 7, DMINUS_ADC_DIS = bit 6
-constexpr uint8_t IBUS_ADC = 0x31;  // signed, 1 mA/LSB
-constexpr uint8_t IBAT_ADC = 0x33;  // signed, 1 mA/LSB (+ = charging)
-constexpr uint8_t VBUS_ADC = 0x35;  // 1 mV/LSB
-constexpr uint8_t VAC1_ADC = 0x37;
-constexpr uint8_t VAC2_ADC = 0x39;
-constexpr uint8_t VBAT_ADC = 0x3B;
-constexpr uint8_t VSYS_ADC = 0x3D;
-constexpr uint8_t TS_ADC = 0x3F;   // 0.0976563 %/LSB
-constexpr uint8_t TDIE_ADC = 0x41; // signed, 0.5 degC/LSB
-constexpr uint8_t PART_INFO = 0x48; // PN[5:3] = 3 for BQ25798, DEV_REV[2:0]
+constexpr uint8_t kMinSysVoltage = 0x00;  // VSYSMIN[5:0], 250 mV/LSB + 2500 mV
+constexpr uint8_t kChargeVoltage = 0x01;   // 16-bit, VREG[10:0], 10 mV/LSB
+constexpr uint8_t kChargeCurrent = 0x03;   // 16-bit, ICHG[8:0], 10 mA/LSB
+constexpr uint8_t kInputVoltage = 0x05;    // VINDPM[7:0], 100 mV/LSB
+constexpr uint8_t kInputCurrent = 0x06;    // 16-bit, IINDPM[8:0], 10 mA/LSB
+constexpr uint8_t kTerminationCtrl = 0x09; // REG_RST = bit 6
+constexpr uint8_t kRechargeCtrl = 0x0A;    // CELL[7:6]
+constexpr uint8_t kChargerCtrl0 = 0x0F;   // EN_CHG = bit 5
+constexpr uint8_t kChargerCtrl1 = 0x10;   // WD_RST = bit 3, WATCHDOG[2:0]
+constexpr uint8_t kChargerCtrl2 = 0x11;   // SDRV_CTRL[2:1], SDRV_DLY = bit 0
+constexpr uint8_t kChargerCtrl5 = 0x14;   // EN_IBAT = bit 5
+constexpr uint8_t kMpptCtrl = 0x15;        // EN_MPPT = bit 0
+constexpr uint8_t kNtcCtrl1 = 0x18;       // TS_IGNORE = bit 0
+constexpr uint8_t kStatus0 = 0x1B;         // PG_STAT = bit 3, VBUS_PRESENT_STAT = bit 0
+constexpr uint8_t kStatus1 = 0x1C;         // CHG_STAT[7:5], VBUS_STAT[4:1]
+constexpr uint8_t kStatus2 = 0x1D;         // VBAT_PRESENT_STAT = bit 0
+constexpr uint8_t kStatus4 = 0x1F;         // TS_COLD/COOL/WARM/HOT = bits 3..0
+constexpr uint8_t kFault0 = 0x20;
+constexpr uint8_t kFault1 = 0x21;
+constexpr uint8_t kAdcCtrl = 0x2E;  // ADC_EN = bit 7, ADC_RATE = bit 6, ADC_SAMPLE[5:4]
+constexpr uint8_t kAdcDis1 = 0x30; // DPLUS_ADC_DIS = bit 7, DMINUS_ADC_DIS = bit 6
+constexpr uint8_t kIbusAdc = 0x31;  // signed, 1 mA/LSB
+constexpr uint8_t kIbatAdc = 0x33;  // signed, 1 mA/LSB (+ = charging)
+constexpr uint8_t kVbusAdc = 0x35;  // 1 mV/LSB
+constexpr uint8_t kVac1Adc = 0x37;
+constexpr uint8_t kVac2Adc = 0x39;
+constexpr uint8_t kVbatAdc = 0x3B;
+constexpr uint8_t kVsysAdc = 0x3D;
+constexpr uint8_t kTsAdc = 0x3F;   // 0.0976563 %/LSB
+constexpr uint8_t kTdieAdc = 0x41; // signed, 0.5 degC/LSB
+constexpr uint8_t kPartInfo = 0x48; // PN[5:3] = 3 for BQ25798, DEV_REV[2:0]
 } // namespace reg
 
-constexpr uint8_t PART_NUMBER_BQ25798 = 3;
+constexpr uint8_t kPartNumberBq25798 = 3;
 
 enum class ChargeState : uint8_t {
     NotCharging = 0,
@@ -163,25 +166,25 @@ inline int ocvPercent(uint16_t cellMv, const uint16_t *ocv, int points)
 class Charger
 {
   public:
-    explicit Charger(Bus &bus, uint8_t addr = DEFAULT_ADDR) : bus(bus), addr(addr) {}
+    explicit Charger(Bus &bus, uint8_t addr = kDefaultAddr) : bus(bus), addr(addr) {}
 
     /// True if a BQ25798 answers at the address. Also distinguishes it from other parts
     /// sharing 0x6B (BQ25896, QMI8658, SEN6x...) via the part-number field.
     bool probe(uint8_t *partInfoOut = nullptr)
     {
         uint8_t info;
-        if (!read8(reg::PART_INFO, info))
+        if (!read8(reg::kPartInfo, info))
             return false;
         if (partInfoOut)
             *partInfoOut = info;
-        return ((info >> 3) & 0x07) == PART_NUMBER_BQ25798;
+        return ((info >> 3) & 0x07) == kPartNumberBq25798;
     }
 
     /// Number of series cells as configured by the PROG pin (1..4), 0 on error.
     uint8_t cellCount()
     {
         uint8_t v;
-        if (!read8(reg::RECHARGE_CTRL, v))
+        if (!read8(reg::kRechargeCtrl, v))
             return 0;
         return ((v >> 6) & 0x03) + 1;
     }
@@ -198,39 +201,39 @@ class Charger
             // wrong build flag must never be able to overcharge a pack.
             if (cfg.chargeVoltageMv < 3000 || cfg.chargeVoltageMv > 4400u * cells)
                 return false;
-            if (!write16(reg::CHARGE_VOLTAGE, (cfg.chargeVoltageMv / 10) & 0x07FF))
+            if (!write16(reg::kChargeVoltage, (cfg.chargeVoltageMv / 10) & 0x07FF))
                 return false;
         }
         if (cfg.chargeCurrentMa) {
-            if (!write16(reg::CHARGE_CURRENT, (clamp(cfg.chargeCurrentMa, 50, 5000) / 10) & 0x01FF))
+            if (!write16(reg::kChargeCurrent, (clamp(cfg.chargeCurrentMa, 50, 5000) / 10) & 0x01FF))
                 return false;
         }
         if (cfg.inputCurrentMa) {
-            if (!write16(reg::INPUT_CURRENT, (clamp(cfg.inputCurrentMa, 100, 3300) / 10) & 0x01FF))
+            if (!write16(reg::kInputCurrent, (clamp(cfg.inputCurrentMa, 100, 3300) / 10) & 0x01FF))
                 return false;
         }
         if (cfg.inputVoltageMv) {
-            if (!write8(reg::INPUT_VOLTAGE, (uint8_t)(clamp(cfg.inputVoltageMv, 3600, 22000) / 100)))
+            if (!write8(reg::kInputVoltage, (uint8_t)(clamp(cfg.inputVoltageMv, 3600, 22000) / 100)))
                 return false;
         }
         if (cfg.minSystemMv) {
             const uint16_t mv = clamp(cfg.minSystemMv, 2500, 16000);
-            if (!updateBits(reg::MIN_SYS_VOLTAGE, 0x3F, (uint8_t)((mv - 2500) / 250)))
+            if (!updateBits(reg::kMinSysVoltage, 0x3F, (uint8_t)((mv - 2500) / 250)))
                 return false;
         }
 
         return
             // Disable the I2C watchdog: otherwise the chip reverts to defaults ~40 s after the
             // MCU stops talking to it (e.g. while it sleeps). We detect real resets instead.
-            updateBits(reg::CHARGER_CTRL_1, 0x07, 0x00) &&
-            updateBits(reg::MPPT_CTRL, 0x01, cfg.enableMppt ? 0x01 : 0x00) &&
-            updateBits(reg::NTC_CTRL_1, 0x01, cfg.ignoreTs ? 0x01 : 0x00) &&
+            updateBits(reg::kChargerCtrl1, 0x07, 0x00) &&
+            updateBits(reg::kMpptCtrl, 0x01, cfg.enableMppt ? 0x01 : 0x00) &&
+            updateBits(reg::kNtcCtrl1, 0x01, cfg.ignoreTs ? 0x01 : 0x00) &&
             // Measure discharge current too, not only charge current
-            updateBits(reg::CHARGER_CTRL_5, 0x20, 0x20) &&
+            updateBits(reg::kChargerCtrl5, 0x20, 0x20) &&
             // Skip the USB D+/D- channels (unused) to shorten ADC conversions
-            updateBits(reg::ADC_DIS_1, 0xC0, 0xC0) &&
+            updateBits(reg::kAdcDis1, 0xC0, 0xC0) &&
             // Make sure charging is enabled
-            updateBits(reg::CHARGER_CTRL_0, 0x20, 0x20);
+            updateBits(reg::kChargerCtrl0, 0x20, 0x20);
     }
 
     /// True if the chip lost our configuration (power-on reset, REG_RST, battery swap...).
@@ -238,7 +241,7 @@ class Charger
     bool wasReset(bool &reset)
     {
         uint8_t v;
-        if (!read8(reg::CHARGER_CTRL_1, v))
+        if (!read8(reg::kChargerCtrl1, v))
             return false;
         reset = (v & 0x07) != 0;
         return true;
@@ -247,13 +250,13 @@ class Charger
     /// Start one ADC conversion of all channels (14-bit, ~100 ms). The chip clears ADC_EN
     /// when done; results stay readable until the next conversion. One-shot instead of
     /// continuous saves several hundred uA on a battery-powered node.
-    bool startAdcConversion() { return write8(reg::ADC_CTRL, 0x80 | 0x40 | (1 << 4)); }
+    bool startAdcConversion() { return write8(reg::kAdcCtrl, 0x80 | 0x40 | (1 << 4)); }
 
     bool readStatus(Status &s)
     {
         uint8_t st[5]; // STATUS_0 .. STATUS_4
         uint8_t f[2];
-        if (!bus.readRegs(addr, reg::STATUS_0, st, sizeof(st)) || !bus.readRegs(addr, reg::FAULT_0, f, sizeof(f)))
+        if (!bus.readRegs(addr, reg::kStatus0, st, sizeof(st)) || !bus.readRegs(addr, reg::kFault0, f, sizeof(f)))
             return false;
         s.vbusPresent = st[0] & 0x01;
         s.powerGood = st[0] & 0x08;
@@ -268,26 +271,26 @@ class Charger
 
     bool readMeasurements(Measurements &m)
     {
-        uint8_t b[0x43 - reg::IBUS_ADC]; // IBUS_ADC (0x31) .. TDIE_ADC (0x41/0x42)
-        if (!bus.readRegs(addr, reg::IBUS_ADC, b, sizeof(b)))
+        uint8_t b[0x43 - reg::kIbusAdc]; // IBUS_ADC (0x31) .. TDIE_ADC (0x41/0x42)
+        if (!bus.readRegs(addr, reg::kIbusAdc, b, sizeof(b)))
             return false;
-        auto u16 = [&](uint8_t r) { return (uint16_t)((b[r - reg::IBUS_ADC] << 8) | b[r - reg::IBUS_ADC + 1]); };
-        m.ibusMa = (int16_t)u16(reg::IBUS_ADC);
-        m.ibatMa = (int16_t)u16(reg::IBAT_ADC);
-        m.vbusMv = u16(reg::VBUS_ADC);
-        m.vac1Mv = u16(reg::VAC1_ADC);
-        m.vac2Mv = u16(reg::VAC2_ADC);
-        m.vbatMv = u16(reg::VBAT_ADC);
-        m.vsysMv = u16(reg::VSYS_ADC);
-        m.tsPercent = u16(reg::TS_ADC) * 0.0976563f;
-        m.dieTempC = (int16_t)u16(reg::TDIE_ADC) * 0.5f;
+        auto u16 = [&](uint8_t r) { return (uint16_t)((b[r - reg::kIbusAdc] << 8) | b[r - reg::kIbusAdc + 1]); };
+        m.ibusMa = (int16_t)u16(reg::kIbusAdc);
+        m.ibatMa = (int16_t)u16(reg::kIbatAdc);
+        m.vbusMv = u16(reg::kVbusAdc);
+        m.vac1Mv = u16(reg::kVac1Adc);
+        m.vac2Mv = u16(reg::kVac2Adc);
+        m.vbatMv = u16(reg::kVbatAdc);
+        m.vsysMv = u16(reg::kVsysAdc);
+        m.tsPercent = u16(reg::kTsAdc) * 0.0976563f;
+        m.dieTempC = (int16_t)u16(reg::kTdieAdc) * 0.5f;
         return true;
     }
 
     /// Cut power to the whole system (BATFET off) after a 10 s delay. The chip leaves ship
     /// mode by itself when an input (solar panel) is connected or QON is pressed, so a node
     /// that ran flat overnight cold-boots again when the sun comes up.
-    bool enterShipMode() { return updateBits(reg::CHARGER_CTRL_2, 0x07, (0x02 << 1) | 0x00); }
+    bool enterShipMode() { return updateBits(reg::kChargerCtrl2, 0x07, (0x02 << 1) | 0x00); }
 
   private:
     Bus &bus;
