@@ -364,6 +364,9 @@ static void testMeshtasticAdapter()
         BQ25798BatteryLevel probeOnly;
         CHECK(!probeOnly.init());
         CHECK(other.writes.empty()); // never touches a chip it doesn't recognise
+        meshtastic_Telemetry t = {};
+        CHECK(!probeOnly.getPowerMetrics(t.variant.power_metrics)); // no telemetry without a chip
+        CHECK(!probeOnly.isPresent());
         Wire.dev = nullptr;
         CHECK(!probeOnly.init());
     }
@@ -395,6 +398,55 @@ static void testMeshtasticAdapter()
     for (auto &l : logLines)
         logged |= l.find("BQ25798: bat 3912mV 250mA | in 18230mV 90mA | sys 3922mV | Fast charge (CC)") != std::string::npos;
     CHECK(logged);
+
+    SECTION("adapter: power telemetry channels (no other power sensor)");
+    CHECK(bq25798HasTelemetry());
+    CHECK(!bq25798GetPowerMetrics(nullptr));
+    {
+        meshtastic_Telemetry t = {};
+        logLines.clear();
+        CHECK(bq25798GetPowerMetrics(&t));
+        const auto &pm = t.variant.power_metrics;
+        CHECK(pm.has_ch1_voltage && pm.has_ch1_current); // solar input
+        CHECK(std::fabs(pm.ch1_voltage - 18.23f) < 0.001f);
+        CHECK(std::fabs(pm.ch1_current - 90.0f) < 0.001f);
+        CHECK(pm.has_ch2_voltage && pm.has_ch2_current); // battery
+        CHECK(std::fabs(pm.ch2_voltage - 3.912f) < 0.001f);
+        CHECK(std::fabs(pm.ch2_current - 250.0f) < 0.001f);
+        CHECK(pm.has_ch3_voltage && !pm.has_ch3_current); // system rail: voltage only
+        CHECK(std::fabs(pm.ch3_voltage - 3.922f) < 0.001f);
+        CHECK(!pm.has_ch4_voltage && !pm.has_ch4_current);
+        bool mapped = false;
+        for (auto &l : logLines)
+            mapped |= l.find("solar input=ch1, battery=ch2, system=ch3") != std::string::npos;
+        CHECK(mapped);
+    }
+
+    SECTION("adapter: power telemetry never overwrites another sensor's channel");
+    {
+        meshtastic_Telemetry t = {};
+        auto &pm = t.variant.power_metrics;
+        pm.has_ch1_voltage = true; // e.g. an INA219 already reported on ch1
+        pm.ch1_voltage = 12.5f;
+        pm.has_ch3_current = true; // and something put a current on ch3
+        pm.ch3_current = 7.0f;
+        CHECK(bq25798GetPowerMetrics(&t));
+        CHECK(std::fabs(pm.ch1_voltage - 12.5f) < 0.001f && !pm.has_ch1_current);
+        CHECK(std::fabs(pm.ch2_voltage - 18.23f) < 0.001f); // solar moved to ch2
+        CHECK(std::fabs(pm.ch3_current - 7.0f) < 0.001f && !pm.has_ch3_voltage);
+        CHECK(std::fabs(pm.ch4_voltage - 3.912f) < 0.001f); // battery skipped ch3
+        CHECK(std::fabs(pm.ch5_voltage - 3.922f) < 0.001f);
+    }
+    {
+        meshtastic_Telemetry t = {};
+        auto &pm = t.variant.power_metrics;
+        bool *has[] = {&pm.has_ch1_voltage, &pm.has_ch2_voltage, &pm.has_ch3_voltage, &pm.has_ch4_voltage,
+                       &pm.has_ch5_voltage, &pm.has_ch6_voltage, &pm.has_ch7_voltage, &pm.has_ch8_voltage};
+        for (auto *h : has)
+            *h = true;
+        CHECK(!bq25798GetPowerMetrics(&t)); // all channels taken: nothing added
+        CHECK(!pm.has_ch1_current && pm.ch1_voltage == 0.0f);
+    }
 
     SECTION("adapter: polling is throttled");
     setAdc(chip, 3700, -40, 0, 0);

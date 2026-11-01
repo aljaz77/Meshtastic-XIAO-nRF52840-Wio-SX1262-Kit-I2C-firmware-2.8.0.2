@@ -363,7 +363,8 @@ jobs:
           Meshtastic **$VERSION** built for the **Seeed XIAO nRF52840 + Wio-SX1262 kit**, I2C variant
           (PlatformIO env \`$PIO_ENV\`), built from upstream [$TAG]($UPSTREAM_URL) plus this repo's
           small overlay: a driver for a **BQ25798 solar/MPPT charger** on the I2C bus (detected
-          automatically; without it the node behaves like stock firmware).
+          automatically; without it the node behaves like stock firmware). Solar panel, battery and
+          system voltage/current are sent as power telemetry (ch1/ch2/ch3) when power metrics are enabled.
 
           ### Wiring in this variant
           | Function | XIAO pin | nRF52840 |

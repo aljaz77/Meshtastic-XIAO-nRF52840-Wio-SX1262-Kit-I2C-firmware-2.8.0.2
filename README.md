@@ -124,6 +124,7 @@ PCB.
 | **Safe defaults** | Charge voltage, charge current and input limits stay at what your **PROG resistor** sets in hardware, unless you override them (see below). The firmware refuses any charge voltage above 4.4 V per cell. |
 | **Self-healing config** | The chip's I2C watchdog is turned off so settings don't revert while the MCU sleeps. If the chip does reset (brown-out, battery swap), the firmware notices and re-applies the settings. |
 | **Low-power measurements** | The ADC runs one conversion per reading (every 5 s) instead of continuously, and polling never blocks. |
+| **Power telemetry** | Solar panel, battery and system voltage/current are sent as Meshtastic **power metrics**, so you can watch them in the app and graph them over time. See [Power telemetry](#power-telemetry) below. |
 | **Status log** | Once a minute the serial log shows a line such as:<br>`BQ25798: bat 3912mV 250mA \| in 18230mV 90mA \| sys 3922mV \| Fast charge (CC) \| die 31C`<br>plus warnings for battery-temperature limits and faults. |
 | **Restarts with the sun** | On nRF52, Meshtastic's low-battery shutdown is permanent until someone presses reset, so a solar node that drains overnight would stay dead. Instead, on a low-battery shutdown the firmware puts the BQ25798 into **ship mode**, which cuts power to the whole board after 10 s. The chip leaves ship mode when the panel delivers power again (or QON is pressed), and the XIAO boots normally. Turning the node off from the app does *not* do this. |
 
@@ -131,6 +132,36 @@ PCB.
 > During boot, the I2C scanner prints `BQ25896` for address `0x6B`. That's
 > upstream's scanner mistaking the BQ25798 for a related chip. It's harmless;
 > look for `BQ25798 solar charger found` a few lines later.
+
+### Power telemetry
+
+The charger's readings go out as standard Meshtastic **power metrics**. These
+show up under the node's telemetry in the Meshtastic apps, and on other nodes
+in the mesh that receive them. No extra sensor is needed.
+
+| Channel | Reading | Voltage | Current |
+| ------- | ------- | ------- | ------- |
+| **Ch1** | Solar panel input | panel voltage | mA drawn from the panel |
+| **Ch2** | Battery | battery voltage | mA, **positive = charging**, negative = discharging |
+| **Ch3** | System rail (feeds the XIAO) | SYS voltage | *(not measured)* |
+
+Power telemetry is **off by default** in Meshtastic. Turn on power
+measurement in the app's Telemetry module settings (and the power screen too
+if you have a display), or with the CLI:
+
+```bash
+meshtastic --set telemetry.power_measurement_enabled true --set telemetry.power_update_interval 1800
+```
+
+`power_update_interval` is in seconds: 1800 sends one reading every 30
+minutes. Every packet costs airtime on the shared mesh, so don't set it very
+short on a busy network. The app still gets fresh values more often while
+it's connected.
+
+If you also fit an INA219/INA226/INA3221 power sensor, its channels are left
+untouched and the charger's readings move to the next free channels. The boot
+log shows the mapping, e.g. `BQ25798 power telemetry: solar input=ch1,
+battery=ch2, system=ch3`.
 
 ### Settings
 
@@ -207,14 +238,17 @@ For a local build, export the same string as `PLATFORMIO_BUILD_FLAGS`.
 3. Cover the panel and the state should change to `Not charging` with input
    near 0 mV. Uncover it and you should see `Fast charge` and a positive
    battery current.
-4. **Ship mode:** run the node from a bench supply instead of the cell, with
+4. Enable power telemetry (see above) and check the app: Ch1 should match the
+   panel, and Ch2 should match the battery, with a positive current while
+   charging.
+5. **Ship mode:** run the node from a bench supply instead of the cell, with
    the panel disconnected. Lower the voltage below about 3.1 V. After about
    10 low readings, the log shows `entering ship mode`, and about 10 s later
    SYS turns off. Connect the panel and the node should boot again.
 
 > [!NOTE]
 > The driver is unit-tested against a simulated chip and compiled on every
-> build, but it hasn't run on a real BQ25798 yet. Steps 1–4 above are the
+> build, but it hasn't run on a real BQ25798 yet. Steps 1–5 above are the
 > first hardware check.
 
 ---
@@ -283,8 +317,9 @@ Key points:
   [overlay](overlay/), and builds with Meshtastic's own `bin/build-nrf52.sh`
   and the PlatformIO version upstream pins.
 - **A tiny, robust patch.** [`scripts/apply_overlay.py`](scripts/apply_overlay.py)
-  copies two new header files in and adds 4 lines to `src/Power.cpp`, located
-  by matching text rather than line numbers. If a future Meshtastic version
+  copies three new header files in and adds 4 lines to `src/Power.cpp` and
+  5 lines to `src/modules/Telemetry/PowerTelemetry.cpp`, located by matching
+  text rather than line numbers. If a future Meshtastic version
   changes that code so much that the text isn't found, the build stops with a
   clear error and opens an issue, instead of quietly releasing firmware
   without the driver.
@@ -306,7 +341,7 @@ everything that can be checked without hardware.
 
 | # | Test | Script | What it catches |
 | - | ---- | ------ | --------------- |
-| 1 | **BQ25798 driver unit tests** | [`tests/test_bq25798.cpp`](tests/test_bq25798.cpp) | 640+ checks against a simulated charger: part detection (and refusing other 0x6B chips), register encoding of every setting, the over-voltage guard, big-endian/signed ADC decoding, status bits, reset detection and re-configuration, I2C glitches never reporting a 0 mV battery (which could trigger a false low-battery shutdown), and ship mode only on low-battery shutdown. Runs the **real Meshtastic adapter code**, not a copy. |
+| 1 | **BQ25798 driver unit tests** | [`tests/test_bq25798.cpp`](tests/test_bq25798.cpp) | 660+ checks against a simulated charger: part detection (and refusing other 0x6B chips), register encoding of every setting, the over-voltage guard, big-endian/signed ADC decoding, status bits, reset detection and re-configuration, I2C glitches never reporting a 0 mV battery (which could trigger a false low-battery shutdown), and ship mode only on low-battery shutdown. Power telemetry: correct channels and units, and never overwriting another power sensor's channels. Runs the **real Meshtastic adapter code**, not a copy. |
 | 2 | **Pinout check** | [`scripts/check_pinout.py`](scripts/check_pinout.py) | Resolves the real PlatformIO build flags for the env, compiles upstream `variant.h` with them, and asserts SDA = D6, SCL = D7, GPS on NFC1/NFC2, button on D0, and all LoRa/SPI pins. Also fails if upstream renames or removes the I2C env. |
 | 3 | **UF2 image check** | [`scripts/verify_uf2.py`](scripts/verify_uf2.py) | Valid UF2 container; every block targets the nRF52840 family (`0xADA52840`); the image fits **inside the app region from upstream's linker script**, so it can't overwrite the SoftDevice, your saved config or the bootloader; the version string matches the tag; the SX1262 radio driver, the I2C scanner and the BQ25798 driver are linked in. Reports flash usage. |
 | 4 | **OTA package check** | inline in workflow | The `-ota.zip` is a valid archive with a DFU `manifest.json`. |
@@ -419,7 +454,8 @@ Output goes to `release/`. Replace the tag with any
 .github/workflows/build.yml   automatic check → build → self-test → release pipeline
 .github/actionlint.yaml       lint config (declares the self-hosted runner label)
 overlay/src/power/BQ25798.h   BQ25798 register driver (no Arduino dependencies, unit-testable)
-overlay/src/power/BQ25798BatteryLevel.h  Meshtastic glue: battery reporting, ship mode
+overlay/src/power/BQ25798BatteryLevel.h  Meshtastic glue: battery reporting, telemetry, ship mode
+overlay/src/power/BQ25798Telemetry.h     hooks called from the power telemetry module
 scripts/apply_overlay.py      copies overlay/ into upstream and hooks it into Power.cpp
 scripts/check_pinout.py       self-test: pin assignments vs. upstream variant.h
 scripts/verify_uf2.py         self-test: UF2 image validation
