@@ -11,6 +11,7 @@ Checks, without any hardware:
 
 Usage:
   verify_uf2.py FIRMWARE.uf2 [--version 2.8.1.8e6a88d] [--ld path/to/linker.ld]
+                [--require-string TEXT ...]
 
 Exit code 0 = all checks passed, 1 = at least one check failed.
 """
@@ -86,6 +87,8 @@ def main() -> int:
     ap.add_argument("uf2", type=Path)
     ap.add_argument("--version", help="firmware version string that must be embedded, e.g. 2.8.1.8e6a88d")
     ap.add_argument("--ld", type=Path, help="linker script to read the allowed FLASH region from")
+    ap.add_argument("--require-string", action="append", default=[], metavar="TEXT",
+                    help="extra text that must be present in the image (repeatable), e.g. to prove a driver is linked in")
     args = ap.parse_args()
 
     r = Result()
@@ -154,7 +157,7 @@ def main() -> int:
 
     if args.version:
         r.check(args.version.encode() in image, f"version string '{args.version}' is embedded")
-    for s in REQUIRED_STRINGS:
+    for s in REQUIRED_STRINGS + [t.encode() for t in args.require_string]:
         r.check(s in image, f"contains '{s.decode()}'")
 
     print()
